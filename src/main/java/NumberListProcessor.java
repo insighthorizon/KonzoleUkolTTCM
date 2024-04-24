@@ -16,9 +16,9 @@ public class NumberListProcessor {
      */
     public static int[] processNumbers(ArrayList<Integer> inputNumbers) {
     // pouzijeme Stream API
-    Predicate<Integer> filrationPredicate = inputNumbers.size() % 2 == 0 ?
-            n -> (n % 2 == 0): // akceptuj suda cisla
-            n -> (n % 2 != 0); // akceptuj licha cisla
+    Predicate<Integer> filrationPredicate = (inputNumbers.size() % 2 == 0) ?
+            n -> (n % 2 == 0): // akceptuj jen suda cisla
+            n -> (n % 2 != 0); // akceptuj jen licha cisla
 
     return inputNumbers.stream()
             .filter(filrationPredicate)
