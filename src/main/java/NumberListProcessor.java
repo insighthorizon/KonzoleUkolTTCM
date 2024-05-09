@@ -1,8 +1,10 @@
 import java.util.ArrayList;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * utility trida
+ * utility class
  * - zadny stav, pouze staticka bez-stavova metoda
  */
 public class NumberListProcessor {
@@ -11,21 +13,30 @@ public class NumberListProcessor {
      * Dve varianty funkce:
      * - vstup ma sudy pocet hodnot  ... vystup jsou suda cisla obsazena ve vstupu
      * - vstup ma lichy pocet hodnot ... vystup jsou licha cisla obsazena ve vstupu
+     *
      * @param inputNumbers vstup
      * @return vystup
      */
     public static int[] processNumbers(ArrayList<Integer> inputNumbers) {
-    // pouzijeme Stream API
-    Predicate<Integer> filrationPredicate = (inputNumbers.size() % 2 == 0) ?
-            n -> (n % 2 == 0): // akceptuj jen suda cisla
-            n -> (n % 2 != 0); // akceptuj jen licha cisla
+        /* Mame dve varianty. Bud chceme jen licha cisla, nebo jen suda cisla. Detekce sudych vs lichych cisel
+        se lisi ciste v tom jestli vysledek modulo dvema ma nebo nema byt roven nule. == vs !=
+        Pokud "do not reapeat yourself" za kazdou cenu, tak ...
+         */
+        BiFunction<Integer, Integer, Boolean> compareInts = (inputNumbers.size() % 2 == 0) ?
+                (a, b) -> a == b :
+                (a, b) -> a != b;
 
-    return inputNumbers.stream()
-            .filter(filrationPredicate)
-            .mapToInt(Integer::intValue)
-            .toArray();
+        return inputNumbers.stream()
+                .filter(n -> compareInts.apply(n % 2, 0)) // filtrujeme skrze delitelnost/nedelitelnost 2
+                .mapToInt(Integer::intValue)
+                .toArray();
 
-    // Puvodne jsem vymyslel tohle. Ale je tam dvakrat skoro stejna smycka, jenom s rozdilem boolean operatoru.
+        // puvodne jsem stream filtroval timto (urcite pochopitelnejsi kod, ale jsou tam dva vyrazy skoro stejne
+//        Predicate<Integer> filrationPredicate = (inputNumbers.size() % 2 == 0) ?
+//                n -> (n % 2 == 0) : // akceptuj jen suda cisla
+//                n -> (n % 2 != 0); // akceptuj jen licha cisla
+
+        // Puvodne jsem vymyslel tohle. Ale je tam dvakrat skoro stejna smycka, jenom s rozdilem boolean operatoru.
 //        ArrayList<Integer> vystupniCisla = new ArrayList<>();
 //        if (vstupniCisla.size() % 2 == 0) { // test lichosti
 //            // suda cisla
@@ -38,6 +49,6 @@ public class NumberListProcessor {
 //                if (cislo % 2 != 0)
 //                    vystupniCisla.add(cislo);
 //        }
-}
+    }
 
 }
