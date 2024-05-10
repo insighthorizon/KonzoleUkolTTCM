@@ -1,3 +1,5 @@
+package wrapper;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +15,9 @@ public class ParsingResults {
      * @return unmodifiable list of the parsed numbers
      */
     public List<Integer> getParsedNumbers() {
+//        List<Integer> parsedNumbersCopy = new ArrayList<>();
+//        for (Integer n : parsedNumbers)
+//            parsedNumbersCopy.add(n);
         return Collections.unmodifiableList(parsedNumbers);
     }
 
@@ -24,6 +29,9 @@ public class ParsingResults {
      * @return unmodofiable list of warnings
      */
     public List<String> getWarnings() {
+//        List<String> warningsCopy = new ArrayList<>();
+//        for (String s : warnings)
+//            warningsCopy.add(s);
         return Collections.unmodifiableList(warnings);
     }
 

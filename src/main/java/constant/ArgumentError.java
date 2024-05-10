@@ -1,3 +1,5 @@
+package constant;
+
 public enum ArgumentError {
     NO_ARGS(String.format("%nError: Nebyl zadán žádný argument.")),
     TOO_MANY_ARGS(String.format("%nError: Přebytečné argumenty.")),
@@ -15,5 +17,4 @@ public enum ArgumentError {
         return errorMessage;
     }
 }
-
 

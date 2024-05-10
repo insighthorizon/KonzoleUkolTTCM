@@ -1,4 +1,5 @@
-import java.util.ArrayList;
+package utility;
+
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -6,7 +7,9 @@ import java.util.function.BiFunction;
  * utility class
  * - zadny stav, pouze staticka bez-stavova metoda
  */
-public class NumberListProcessor {
+public class NumbersProcessor {
+
+    private NumbersProcessor() {} // never instantiate
 
     /**
      * Dve varianty funkce:
