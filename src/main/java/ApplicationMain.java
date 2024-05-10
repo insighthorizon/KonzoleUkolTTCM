@@ -1,7 +1,4 @@
 import java.io.*;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -18,74 +15,73 @@ public class ApplicationMain {
     public static void main(String[] args) {
         // Tato metoda by zatim mela resit clontrol flow, error handling a I/O
 
-        // validace cmd line argumentů
+        // validace command line argumentů
         ArgValidationResults argValidationResults = validateArguments(args);
-        for (ArgumentError argumentError : argValidationResults.errors) // vypis odchycenych chyb
+
+        for (ArgumentError argumentError : argValidationResults.getErrors()) // výpis problémů odchycených při validaci
             System.err.println(argumentError.getErrorMessage());
-        if (!argValidationResults.errors.isEmpty()) { // ať si uživatel zadá argumenty správně
-            System.out.println("%nKonec programu z důvodu chybných vstupů. Zkuste to znovu s opravenými vstupy.");
+
+        if (!argValidationResults.getErrors().isEmpty()) { // ukončení programu z důvodu špatných argumentů
+            System.out.println(String.format(
+                    "%nKonec programu z důvodu chybných vstupů." +
+                    "Zkuste to znovu s opravenými vstupy."));
             return;
         }
 
-
-        // ZISKANI VSTUPU (standard input, nebo soubor)
+        // Načtení vstupu (standard input, nebo soubor)
         String rawInput = "";
-        if (argValidationResults.inputFilePath.isEmpty()) { // varianta nacteni z konzole (standard input)
-            System.out.println("Prosim zadejte cela cisla oddelena mezerami, potom stisknete ENTER. Jine vstupy nez cela cisla budou ignorovany.");
+        if (argValidationResults.getInputFilePath().isEmpty()) { // varianta nacteni z konzole (standard input)
+            System.out.println("Prosím zadejte celá čísla oddělená mezerami," +
+                    "potom stisknete ENTER.");
             Scanner standardIOscanner = new Scanner(System.in);
             rawInput = standardIOscanner.nextLine().trim();
             standardIOscanner.close();
         } else { // varianta nacteni ze souboru
             try {
-
-                File file = Paths.get(argValidationResults.inputFilePath).toFile();
-                Scanner fileScanner = new Scanner(file /*new File(argValidationResults.inputFilePath)*/);
+                Scanner fileScanner = new Scanner(new File(argValidationResults.getInputFilePath()));
+                StringBuilder rawInputBuilder = new StringBuilder();
                 while (fileScanner.hasNext()) {
-                    rawInput += fileScanner.nextLine();
+                    rawInputBuilder.append(fileScanner.nextLine());
                 }
                 fileScanner.close();
+                rawInput = rawInputBuilder.toString();
             } catch (FileNotFoundException e) {
-                System.err.println("Vstupni soubor nenalezen: " + argValidationResults.inputFilePath);
+                System.err.println("Vstupni soubor nenalezen: " + argValidationResults.getInputFilePath());
                 System.exit(1);
             }
         }
 
-        // NAPARSOVANI VSTUPU
-        // Zvoleny format pro ukladani v souboru je stajny jako pro zadavani v konzoli - mezery jsou oddelovac
-        String[] inputTokens = rawInput.split("\\s+");
-        // na vstup pouzivam List<> misto pole, protoze predem nevime, kolik prvku bude mit - nejdrive je musime projit
-        // my vime inputValues.length, ale uzivatel mohl zadat i jine hodnoty nez cisla a ty je potreba zahodit
-        ArrayList<Integer> inputNumbers = new ArrayList<>();
-        for (String s : inputTokens) {
-            try {
-                inputNumbers.add(Integer.parseInt(s));
-            } catch (NumberFormatException e) {
-                System.out.println("Upozorneni: Hodnota \"" + s + "\" neni validni. Nebude vubec uvazovana.");
-            }
-        }
+        // Naparsování vstupu
+        ParsingResults parsingResults = parseInput(rawInput);
+        for (String warning : parsingResults.getWarnings())
+            System.out.println(warning);
+
 
         // ZPRACOVANI CISEL
-        int[] outputNumbers = NumberListProcessor.processNumbers(inputNumbers);
+        int[] outputNumbers = NumberListProcessor.process(parsingResults.getParsedNumbers());
 
-        // NAFORMATOVANI VYSTUPU
+        // Naformátování výstupu
         String outputString = Arrays.stream(outputNumbers)
                 .mapToObj(String::valueOf)
                 .collect(Collectors.joining(" "));
 
         // VYDANI VYSTUPU (standard output nebo zapis do souboru)
-        if (argValidationResults.outputFilePath.isEmpty()) { // varianta vypis do konzole (standard output)
+        if (argValidationResults.getOutputFilePath().isEmpty()) { // varianta vypis do konzole (standard output)
             System.out.println("=====Vystup====");
             System.out.println(outputString);
         } else { // varianta ulozeni do souboru
             try {
-                File file = new File(argValidationResults.outputFilePath);
+                /*
+                 * !!! Pokud uz soubor existuje a neni prazdny, tak se zeptat uzivatele
+                 */
+                File file = new File(argValidationResults.getOutputFilePath());
                 if (file.createNewFile())
                     System.out.println("Soubor vytvoren: " + file.getName());
 
-                FileWriter fileWriter = new FileWriter(argValidationResults.outputFilePath);
+                FileWriter fileWriter = new FileWriter(argValidationResults.getOutputFilePath());
                 fileWriter.write(outputString);
                 fileWriter.close();
-                System.out.println("Vystup zapsan do souboru: " + argValidationResults.outputFilePath);
+                System.out.println("Vystup zapsan do souboru: " + argValidationResults.getOutputFilePath());
 
             } catch (IOException e) {
                 System.err.println("Nastala chyba pri vytvareni nebo nacitani vystupniho souboru.");
@@ -95,52 +91,68 @@ public class ApplicationMain {
 
     }
 
+    private static ParsingResults parseInput(String rawInput) {
+        ParsingResults parsingResults = new ParsingResults();
+
+        // Zvoleny format pro ukladani v souboru je stajny jako pro zadavani v konzoli - mezery jsou oddelovac
+        String[] inputTokens = rawInput.split("\\s+");
+        // na vstup pouzivam List<> misto pole, protoze predem nevime, kolik prvku bude mit - nejdrive je musime projit
+        // my vime inputTokens.length, ale uzivatel mohl zadat i jine hodnoty nez cisla a ty je potreba zahodit
+        for (String s : inputTokens) {
+            try {
+                parsingResults.addParsedNumber(Integer.parseInt(s));
+            } catch (NumberFormatException e) {
+                parsingResults.addWarning(String.format("%nWarning: Hodnota \"" + s + "\" není validní číslo. Ve výsledcích bude přeskočena."));
+            }
+        }
+
+        return  parsingResults;
+    }
+
+
     private static ArgValidationResults validateArguments(String[] args) {
         ArgValidationResults argValidationResults = new ArgValidationResults();
 
         // Posouzení počtu argumentů:
         if (args.length == 0) {
-            argValidationResults.errors.add(ArgumentError.NO_ARGS);
+            argValidationResults.addError(ArgumentError.NO_ARGS);
             return argValidationResults;
         }
         if (args.length > 2)
-            argValidationResults.errors.add(ArgumentError.TOO_MANY_ARGS);
+            argValidationResults.addError(ArgumentError.TOO_MANY_ARGS);
 
-        // Validace argumentu
+        // Validace prvniho argumentu - muze byt kladne cele cislo, nebo cesta k souboru
         try {
-            argValidationResults.theNumber = Integer.parseInt(args[0]);
-            // pokud předchozí řádek nebyl odchycen jako vyjímka, tak n je cislo
-            if (argValidationResults.theNumber <= 0) { // podle specifikace je pouze kladne cislo spravne
-                argValidationResults.errors.add(ArgumentError.WRONG_NUMBER);
+            int parsedNumber = Integer.parseInt(args[0]);
+            if (parsedNumber <= 0) { // podle specifikace je pouze kladne cislo spravne
+                argValidationResults.addError(ArgumentError.WRONG_NUMBER);
             }
-        } catch (NumberFormatException e) {
-            argValidationResults.inputFilePath = args[0]; // vstup ma byt ze souboru, nacitame cestu
+        } catch (NumberFormatException e) { // neni cele cislo, vstup má být ze souboru, načteme cestu
+            argValidationResults.setInputFilePath(args[0]);
+            if(!isValidPath(argValidationResults.getInputFilePath()))
+                argValidationResults.addError(ArgumentError.INPUT_PATH_FORMAT);
         }
-
 
         // Validace druhého argumentu (pripadne ziskani cesty k vystupnimu souboru)
-        argValidationResults.outputFilePath = (args.length == 2) ? args[1] : ""; // prazdny String znamena ze vystup bude do standard output
-
-
-        // validace cesty neexistujiciho souboru
-        // https://www.baeldung.com/java-validate-filename
-        // use io or nio? https://www.baeldung.com/java-path-vs-file
-        //Paths.get(argValidationResults.inputFilePath);
-
-        File file = new File(argValidationResults.inputFilePath);
-        boolean created = false;
-        try {
-            file.getCanonicalPath(); // https://www.javainuse.com/java/java-file-is-valid
-            //created = file.createNewFile();
-        } catch (IOException e) {
-            System.out.println("BAAAAAAAAAAD");
-        } finally {
-            if (created)
-                file.delete();
+        if (args.length == 2) {
+            argValidationResults.setOutputFilePath(args[1]);
+            if(!isValidPath(argValidationResults.getOutputFilePath()))
+                argValidationResults.addError(ArgumentError.OUTPUT_PATH_FORMAT);
         }
 
-
         return argValidationResults;
+    }
+
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private static boolean isValidPath(String path) {
+        try {
+            File file = new File(path);
+            file.getCanonicalPath(); // https://www.javainuse.com/java/java-file-is-valid
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
 }

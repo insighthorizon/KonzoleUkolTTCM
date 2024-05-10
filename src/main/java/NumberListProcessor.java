@@ -1,7 +1,6 @@
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * utility class
@@ -17,7 +16,7 @@ public class NumberListProcessor {
      * @param inputNumbers vstup
      * @return vystup
      */
-    public static int[] processNumbers(ArrayList<Integer> inputNumbers) {
+    public static int[] process(List<Integer> inputNumbers) {
         /* Mame dve varianty. Bud chceme jen licha cisla, nebo jen suda cisla. Detekce sudych vs lichych cisel
         se lisi ciste v tom jestli vysledek modulo dvema ma nebo nema byt roven nule. == vs !=
         Pokud "do not reapeat yourself" za kazdou cenu, tak ...
