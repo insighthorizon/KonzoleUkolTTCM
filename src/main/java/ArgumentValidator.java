@@ -1,5 +1,3 @@
-package utility;
-
 import constant.ArgumentError;
 import wrapper.ArgValidationResults;
 import java.io.File;
