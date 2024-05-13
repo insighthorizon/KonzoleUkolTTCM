@@ -1,11 +1,14 @@
-package service;
+package services;
 
-import wrapper.ParsingResults;
-import wrapper.ProcessingResults;
-import wrapper.WarningMessages;
+import wrappers.immutable_collections.ROIntegers;
+import wrappers.immutable_collections.ROStrings;
+import persistence.FileHandler;
+import wrappers.records.ParsingResults;
+import wrappers.records.ProcessingResults;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -13,31 +16,39 @@ import java.util.stream.Collectors;
 /**
  * utility class
  * - zadny stav, pouze staticke bezstatove metody
- *
+ * <br>
  * Controller has to call these methods to perform any data processing or file handling (persistance)
  */
 public class NumbersService {
     private NumbersService() {} // never instantiate
 
+    public static String getFileInput(String inputFilePath) throws FileNotFoundException {
+        return FileHandler.loadFromFile(inputFilePath);
+    }
+
+    public static void saveFile(String outputFilePath, String outputText) throws IOException {
+        FileHandler.overwriteFile(outputFilePath, outputText);
+    }
+
 
     public static ProcessingResults performMainProcessing(String inputText) {
         final ParsingResults parsingResults = parseInputText(inputText);
 
-        return new ProcessingResults(parsingResults.getWarnings(),
-                formatOutput(filterNumbers(parsingResults.getParsedNumbers())));
+        return new ProcessingResults(formatOutput(filterNumbers(parsingResults.parsedNumbers())),
+                parsingResults.warnings());
     }
 
 
     private static ParsingResults parseInputText(String textInput) {
+        // Zvoleny format pro ukladani v souboru je stejny jako pro zadavani v konzoli - mezery jsou oddelovac
         final String TOKEN_SEPARATOR = "\\s+"; // whitespace regex
         List<String> warnings = new ArrayList<>();
         List<Integer> inputNumbers = new ArrayList<>();
-
-        // Zvoleny format pro ukladani v souboru je stejny jako pro zadavani v konzoli - mezery jsou oddelovac
-        final String[] inputTokens = textInput.split(TOKEN_SEPARATOR);
         // na inputNumbers pouzivam List<> misto pole, protoze predem nevime, kolik prvku bude mit - nejdrive je musime projit
         // my vime inputTokens.length, ale uzivatel mohl zadat i jine hodnoty nez cisla a ty je potreba zahodit
-        for (String token : inputTokens) {
+
+        final String[] inputTokens = textInput.split(TOKEN_SEPARATOR);
+        for (final String token : inputTokens) {
             try {
                 inputNumbers.add(Integer.parseInt(token));
             } catch (NumberFormatException e) {
@@ -45,7 +56,7 @@ public class NumbersService {
             }
         }
 
-        return new ParsingResults(warnings, inputNumbers);
+        return new ParsingResults(new ROIntegers(inputNumbers), new ROStrings(warnings));
     }
 
 
@@ -57,7 +68,7 @@ public class NumbersService {
      * @param inputNumbers vstup
      * @return vystup
      */
-    private static int[] filterNumbers(List<Integer> inputNumbers) {
+    private static ROIntegers filterNumbers(ROIntegers inputNumbers) {
         /* Mame dve varianty. Bud chceme jen licha cisla, nebo jen suda cisla. Detekce sudych vs lichych cisel
         se lisi ciste v tom jestli vysledek modulo dvema ma nebo nema byt roven nule. == vs !=
         Pokud "do not reapeat yourself" za kazdou cenu, tak ...
@@ -66,37 +77,16 @@ public class NumbersService {
                 Integer::equals :
                 (a, b) -> !a.equals(b);
 
-        return inputNumbers.stream()
+        return new ROIntegers(inputNumbers.stream()
                 .filter(n -> compareInts.apply(n % 2, 0)) // filtrujeme skrze delitelnost/nedelitelnost 2
-                .mapToInt(Integer::intValue)
-                .toArray();
-
-        // puvodne jsem stream filtroval timto (urcite pochopitelnejsi kod, ale jsou tam dva vyrazy skoro stejne
-//        Predicate<Integer> filrationPredicate = (inputNumbers.size() % 2 == 0) ?
-//                n -> (n % 2 == 0) : // akceptuj jen suda cisla
-//                n -> (n % 2 != 0); // akceptuj jen licha cisla
-
-        // Puvodne jsem vymyslel tohle. Ale je tam dvakrat skoro stejna smycka, jenom s rozdilem boolean operatoru.
-//        ArrayList<Integer> vystupniCisla = new ArrayList<>();
-//        if (vstupniCisla.size() % 2 == 0) { // test lichosti
-//            // suda cisla
-//            for (Integer cislo : vstupniCisla)
-//                if (cislo % 2 == 0)
-//                    vystupniCisla.add(cislo);
-//        } else {
-//            // licha cisla
-//            for (Integer cislo : vstupniCisla)
-//                if (cislo % 2 != 0)
-//                    vystupniCisla.add(cislo);
-//        }
+                .toList());
     }
 
-    private static String formatOutput(int[] outputNumbers) {
+    private static String formatOutput(ROIntegers outputNumbers) {
         // Převod výstupu na text
-        return Arrays.stream(outputNumbers)
-                .mapToObj(String::valueOf)
+        return outputNumbers.stream()
+                .map(String::valueOf)
                 .collect(Collectors.joining(" "));
     }
-
 
 }

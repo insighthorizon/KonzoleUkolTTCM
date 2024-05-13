@@ -1,9 +1,11 @@
-import constant.ArgumentError;
-import controller.ConsoleController;
-import wrapper.ArgValidationResults;
+import wrappers.constants.ArgumentError;
+import controllers.ConsoleController;
+import wrappers.immutable_collections.ROArgumentErrors;
+import wrappers.records.ArgValidationResults;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.*;
 
 /**
  * Program prijima 1 az 2 argumenty ...
@@ -21,36 +23,39 @@ public class ApplicationMain {
     }
 
     private static ArgValidationResults validateArguments(String[] args) {
-        ArgValidationResults argValidationResults = new ArgValidationResults();
+        final Set<ArgumentError> errors = new HashSet<>();
+        String inputFilePath = "";
+        String outputFilePath = "";
 
         // Posouzení počtu argumentů:
         if (args.length == 0) {
-            argValidationResults.addError(ArgumentError.NO_ARGS);
-            return argValidationResults;
-        }
-        if (args.length > 2)
-            argValidationResults.addError(ArgumentError.TOO_MANY_ARGS);
+            errors.add(ArgumentError.NO_ARGS);
+        } else { // we try to check the rest only if some arguments actually have been provided
+            if (args.length > 2)
+                errors.add(ArgumentError.TOO_MANY_ARGS);
 
-        // Validace prvniho argumentu - muze byt kladne cele cislo, nebo cesta k souboru
-        try {
-            int parsedNumber = Integer.parseInt(args[0]);
-            if (parsedNumber <= 0) { // podle specifikace je pouze kladne cislo spravne
-                argValidationResults.addError(ArgumentError.WRONG_NUMBER);
+            // Validace prvniho argumentu - muze byt kladne cele cislo, nebo cesta k souboru
+            try {
+                int parsedNumber = Integer.parseInt(args[0]);
+                if (parsedNumber <= 0) { // podle specifikace je pouze kladne cislo spravne
+                    errors.add(ArgumentError.WRONG_NUMBER);
+                }
+            } catch (NumberFormatException e) { // neni cele cislo, vstup má být ze souboru, načteme cestu
+                inputFilePath = args[0];
+                if (isInvalidPath(inputFilePath))
+                    errors.add(ArgumentError.INPUT_PATH_FORMAT);
             }
-        } catch (NumberFormatException e) { // neni cele cislo, vstup má být ze souboru, načteme cestu
-            argValidationResults.setInputFilePath(args[0]);
-            if(isInvalidPath(argValidationResults.getInputFilePath()))
-                argValidationResults.addError(ArgumentError.INPUT_PATH_FORMAT);
+
+            // Validace druhého argumentu (pripadne ziskani cesty k vystupnimu souboru)
+            if (args.length == 2) {
+                outputFilePath = args[1];
+                if (isInvalidPath(outputFilePath))
+                    errors.add(ArgumentError.OUTPUT_PATH_FORMAT);
+            }
         }
 
-        // Validace druhého argumentu (pripadne ziskani cesty k vystupnimu souboru)
-        if (args.length == 2) {
-            argValidationResults.setOutputFilePath(args[1]);
-            if(isInvalidPath(argValidationResults.getOutputFilePath()))
-                argValidationResults.addError(ArgumentError.OUTPUT_PATH_FORMAT);
-        }
-
-        return argValidationResults;
+        return new ArgValidationResults(inputFilePath, outputFilePath,
+                new ROArgumentErrors(errors));
     }
 
 

@@ -1,4 +1,4 @@
-package constant;
+package wrappers.constants;
 
 public enum ArgumentError {
     NO_ARGS(String.format("%nError: Nebyl zadán žádný argument.")),
