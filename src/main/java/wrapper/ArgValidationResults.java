@@ -11,8 +11,8 @@ import java.util.Set;
  */
 public class ArgValidationResults {
 
-    private String inputFilePath;
-    private String outputFilePath;
+    private String inputFilePath = "";
+    private String outputFilePath = "";
     /**
      * Zde si přidělávám práci tím, že neukončím program když narazím na první chybu v uživatelských argumentech,
      * ale snažím se vyhodnotit i případně víc chyb najednou. Například:

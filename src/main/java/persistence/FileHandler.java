@@ -1,6 +1,8 @@
 package persistence;
 
 
+import wrapper.ProcessingResults;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -10,9 +12,9 @@ import java.util.Scanner;
 /**
  * Errors should be handled via exceptions - checked exceptions
  */
-public class LocalFileHandler {
+public class FileHandler {
 
-    private LocalFileHandler() {} // never instantiate
+    private FileHandler() {} // never instantiate
 
     /**
      * File input
